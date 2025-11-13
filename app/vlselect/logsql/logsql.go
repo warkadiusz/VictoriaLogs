@@ -2,6 +2,7 @@ package logsql
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
@@ -1168,12 +1169,15 @@ type commonArgs struct {
 	// This option makes sense only for cluster setup when vlselect queries vlstorage nodes.
 	allowPartialResponse bool
 
+	// Optional fields and field prefixes to hide during query execution.
+	hiddenFieldsFilters []string
+
 	// qs contains query execution statistics.
 	qs logstorage.QueryStats
 }
 
 func (ca *commonArgs) newQueryContext(ctx context.Context) *logstorage.QueryContext {
-	return logstorage.NewQueryContext(ctx, &ca.qs, ca.tenantIDs, ca.q, ca.allowPartialResponse)
+	return logstorage.NewQueryContext(ctx, &ca.qs, ca.tenantIDs, ca.q, ca.allowPartialResponse, ca.hiddenFieldsFilters)
 }
 
 func (ca *commonArgs) updatePerQueryStatsMetrics() {
@@ -1282,11 +1286,17 @@ func parseCommonArgsWithConfig(r *http.Request, skipMaxRangeCheck bool) (*common
 		return nil, err
 	}
 
+	hiddenFieldsFilters, err := getStringSliceFromRequest(r, "hidden_fields_filters")
+	if err != nil {
+		return nil, err
+	}
+
 	ca := &commonArgs{
 		q:         q,
 		tenantIDs: tenantIDs,
 
 		allowPartialResponse: allowPartialResponse,
+		hiddenFieldsFilters:  hiddenFieldsFilters,
 	}
 	return ca, nil
 }
@@ -1443,6 +1453,26 @@ func getBoolFromRequest(dst *bool, r *http.Request, argName string) error {
 	}
 	*dst = b
 	return nil
+}
+
+func getStringSliceFromRequest(r *http.Request, argName string) ([]string, error) {
+	s := r.FormValue(argName)
+	if s == "" {
+		return nil, nil
+	}
+
+	if strings.HasPrefix(s, "[") {
+		// Parse as a JSON array of strings.
+		var a []string
+		if err := json.Unmarshal([]byte(s), &a); err != nil {
+			return nil, fmt.Errorf("cannot unmarshal JSON array from %s=%q: %w", argName, s, err)
+		}
+		return a, nil
+	}
+
+	// Parse as a comma-separated list of strings
+	a := strings.Split(s, ",")
+	return a, nil
 }
 
 func writeRequestDuration(h http.Header, startTime time.Time) {
