@@ -200,7 +200,8 @@ If you need restoring the data between the backup time and the current time, the
 so you could copy the needed per-day partitions from cluster replica.
 
 Usually the disaster event occurs rarely (e.g. once per year). Every such event has unique preconditions and consequences,
-so it is impossible to automate recovering from disaster events. These events require human attention and manual actions.
+so it is impossible to automate recovering from disaster events. These events require human attention and carefully thought manual actions,
+so there is little practical sense in relying on automatic data recovery from the magically replicated data among storage nodes.
 
 ## Single-node and cluster mode duality
 
