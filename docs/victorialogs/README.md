@@ -415,7 +415,7 @@ It is also possible to use **the disk snapshot** feature provided by the operati
 ## Multitenancy
 
 VictoriaLogs supports multitenancy. A tenant is identified by `(AccountID, ProjectID)` pair, where `AccountID` and `ProjectID` are arbitrary 32-bit unsigned integers.
-The `AccountID` and `ProjectID` fields can be set during [data ingestion](https://docs.victoriametrics.com/victorialogs/data-ingestion/)
+The `AccountID` and `ProjectID` can be set during [data ingestion](https://docs.victoriametrics.com/victorialogs/data-ingestion/)
 and [querying](https://docs.victoriametrics.com/victorialogs/querying/) via `AccountID` and `ProjectID` request headers.
 
 If `AccountID` and/or `ProjectID` request headers aren't set, then the default `0` value is used.

@@ -198,7 +198,7 @@ func ProcessFacetsRequest(ctx context.Context, w http.ResponseWriter, r *http.Re
 	h := w.Header()
 
 	h.Set("Content-Type", "application/json")
-	writeRequestDuration(h, startTime)
+	ca.writeResponseHeaders(h, startTime)
 
 	// Write response
 	WriteFacetsResponse(w, m)
@@ -314,7 +314,7 @@ func ProcessHitsRequest(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	h := w.Header()
 
 	h.Set("Content-Type", "application/json")
-	writeRequestDuration(h, startTime)
+	ca.writeResponseHeaders(h, startTime)
 
 	// Write response
 	WriteHitsSeries(w, m)
@@ -412,7 +412,7 @@ func ProcessFieldNamesRequest(ctx context.Context, w http.ResponseWriter, r *htt
 	h := w.Header()
 
 	h.Set("Content-Type", "application/json")
-	writeRequestDuration(h, startTime)
+	ca.writeResponseHeaders(h, startTime)
 
 	// Write results
 	WriteValuesWithHitsJSON(w, fieldNames)
@@ -457,7 +457,7 @@ func ProcessFieldValuesRequest(ctx context.Context, w http.ResponseWriter, r *ht
 	h := w.Header()
 
 	h.Set("Content-Type", "application/json")
-	writeRequestDuration(h, startTime)
+	ca.writeResponseHeaders(h, startTime)
 
 	// Write results
 	WriteValuesWithHitsJSON(w, values)
@@ -488,7 +488,7 @@ func ProcessStreamFieldNamesRequest(ctx context.Context, w http.ResponseWriter, 
 	h := w.Header()
 
 	h.Set("Content-Type", "application/json")
-	writeRequestDuration(h, startTime)
+	ca.writeResponseHeaders(h, startTime)
 
 	// Write results
 	WriteValuesWithHitsJSON(w, names)
@@ -533,7 +533,7 @@ func ProcessStreamFieldValuesRequest(ctx context.Context, w http.ResponseWriter,
 	h := w.Header()
 
 	h.Set("Content-Type", "application/json")
-	writeRequestDuration(h, startTime)
+	ca.writeResponseHeaders(h, startTime)
 
 	// Write results
 	WriteValuesWithHitsJSON(w, values)
@@ -571,7 +571,7 @@ func ProcessStreamIDsRequest(ctx context.Context, w http.ResponseWriter, r *http
 	h := w.Header()
 
 	h.Set("Content-Type", "application/json")
-	writeRequestDuration(h, startTime)
+	ca.writeResponseHeaders(h, startTime)
 
 	// Write results
 	WriteValuesWithHitsJSON(w, streamIDs)
@@ -609,7 +609,7 @@ func ProcessStreamsRequest(ctx context.Context, w http.ResponseWriter, r *http.R
 	h := w.Header()
 
 	h.Set("Content-Type", "application/json")
-	writeRequestDuration(h, startTime)
+	ca.writeResponseHeaders(h, startTime)
 
 	// Write results
 	WriteValuesWithHitsJSON(w, streams)
@@ -943,7 +943,7 @@ func ProcessStatsQueryRangeRequest(ctx context.Context, w http.ResponseWriter, r
 	h := w.Header()
 
 	h.Set("Content-Type", "application/json")
-	writeRequestDuration(h, startTime)
+	ca.writeResponseHeaders(h, startTime)
 
 	// Write response
 	WriteStatsQueryRangeResponse(w, rows)
@@ -1033,7 +1033,7 @@ func ProcessStatsQueryRequest(ctx context.Context, w http.ResponseWriter, r *htt
 	h := w.Header()
 
 	h.Set("Content-Type", "application/json")
-	writeRequestDuration(h, startTime)
+	ca.writeResponseHeaders(h, startTime)
 
 	// Write response
 	WriteStatsQueryResponse(w, rows)
@@ -1100,7 +1100,7 @@ func ProcessQueryRequest(ctx context.Context, w http.ResponseWriter, r *http.Req
 		h := w.Header()
 
 		h.Set("Content-Type", "application/stream+json")
-		writeRequestDuration(h, startTime)
+		ca.writeResponseHeaders(h, startTime)
 	})
 
 	writeBlock := func(workerID uint, db *logstorage.DataBlock) {
@@ -1543,7 +1543,21 @@ func getStringSliceFromRequest(r *http.Request, argName string) ([]string, error
 	return a, nil
 }
 
-func writeRequestDuration(h http.Header, startTime time.Time) {
-	h.Set("Access-Control-Expose-Headers", "VL-Request-Duration-Seconds")
+func (ca *commonArgs) writeResponseHeaders(h http.Header, startTime time.Time) {
+	// Write request duration
+	accessControlExposeHeaders := []string{"VL-Request-Duration-Seconds"}
 	h.Set("VL-Request-Duration-Seconds", fmt.Sprintf("%.3f", time.Since(startTime).Seconds()))
+
+	if len(ca.tenantIDs) == 1 {
+		// Write the used AccountID and ProjectID, so the client could show them properly.
+		accessControlExposeHeaders = append(accessControlExposeHeaders, "AccountID", "ProjectID")
+		tenantID := ca.tenantIDs[0]
+		h.Set("AccountID", fmt.Sprintf("%d", tenantID.AccountID))
+		h.Set("ProjectID", fmt.Sprintf("%d", tenantID.ProjectID))
+	}
+
+	for i, v := range accessControlExposeHeaders {
+		accessControlExposeHeaders[i] = http.CanonicalHeaderKey(v)
+	}
+	h.Set("Access-Control-Expose-Headers", strings.Join(accessControlExposeHeaders, ", "))
 }

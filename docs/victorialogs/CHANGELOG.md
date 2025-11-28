@@ -21,8 +21,8 @@ according to the follosing docs:
 
 ## tip
 
-
 * FEATURE: [syslog data ingestion](https://docs.victoriametrics.com/victorialogs/data-ingestion/syslog/): add support for automatic parsing of [`@cee` messages](http://cee.mitre.org/language/1.0-beta1/clt.html#syslog). Thanks to @exherb for the pull request [#842](https://github.com/VictoriaMetrics/VictoriaLogs/pull/842).
+* FEATURE: [HTTP querying APIs](https://docs.victoriametrics.com/victorialogs/querying/#http-api): return `AccountID` and `ProjectID` response headers, which match the corresponding request headers when executing [queries for the particular tenant](https://docs.victoriametrics.com/victorialogs/#multitenancy). These response headers can be used by client such as [built-in web UI for VictoriaLogs](https://docs.victoriametrics.com/victorialogs/querying/#web-ui) for the proper displaying of the queried tenant. See [#656](https://github.com/VictoriaMetrics/VictoriaLogs/issues/656).
 * FEATURE: [web UI](https://docs.victoriametrics.com/victorialogs/querying/#web-ui): add the help button with shortcuts reference and controls for charts and query input. See [#77](https://github.com/VictoriaMetrics/VictoriaLogs/issues/77).
 * FEATURE: [web UI](https://docs.victoriametrics.com/victorialogs/querying/#web-ui): auto-sync time picker with `_time` filter from the query (can be disabled). See [#558](https://github.com/VictoriaMetrics/VictoriaLogs/issues/558).
 
