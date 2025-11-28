@@ -21,6 +21,10 @@ according to the follosing docs:
 
 ## tip
 
+## [v1.39.0](https://github.com/VictoriaMetrics/VictoriaLogs/releases/tag/v1.39.0)
+
+Released at 2025-11-29
+
 * FEATURE: [syslog data ingestion](https://docs.victoriametrics.com/victorialogs/data-ingestion/syslog/): add support for automatic parsing of [`@cee` messages](http://cee.mitre.org/language/1.0-beta1/clt.html#syslog). Thanks to @exherb for the pull request [#842](https://github.com/VictoriaMetrics/VictoriaLogs/pull/842).
 * FEATURE: [HTTP querying APIs](https://docs.victoriametrics.com/victorialogs/querying/#http-api): return `AccountID` and `ProjectID` response headers, which match the corresponding request headers when executing [queries for the particular tenant](https://docs.victoriametrics.com/victorialogs/#multitenancy). These response headers can be used by client such as [built-in web UI for VictoriaLogs](https://docs.victoriametrics.com/victorialogs/querying/#web-ui) for the proper displaying of the queried tenant. See [#656](https://github.com/VictoriaMetrics/VictoriaLogs/issues/656).
 * FETURE: [Elasticsearch data ingestion](https://docs.victoriametrics.com/victorialogs/data-ingestion/#elasticsearch-bulk-api): return the first parse error to the client, so the error could be quickly fixed. Previously the parse error was logged into VictoriaLogs internal logs and `success` response was returned to the client. This could complicate troubleshooting, since users need to have access to VictoriaLogs internal logs for the troubleshooting. See [#817](https://github.com/VictoriaMetrics/VictoriaLogs/issues/817) and [#60](https://github.com/VictoriaMetrics/VictoriaLogs/issues/60).
