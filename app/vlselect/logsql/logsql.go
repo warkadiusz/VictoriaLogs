@@ -889,9 +889,7 @@ func ProcessStatsQueryRangeRequest(ctx context.Context, w http.ResponseWriter, r
 		return
 	}
 
-	// Obtain `by(...)` fields from the last `| stats` pipe in q.
-	// Add `_time:step` to the `by(...)` list.
-	byFields, err := ca.q.GetStatsByFieldsAddGroupingByTime(int64(step))
+	labelFields, err := ca.q.GetStatsLabelsAddGroupingByTime(int64(step))
 	if err != nil {
 		httpserver.SendPrometheusError(w, r, err)
 		return
@@ -913,7 +911,7 @@ func ProcessStatsQueryRangeRequest(ctx context.Context, w http.ResponseWriter, r
 			// must be initialized to query timestamp for every processed log row.
 			// See https://github.com/VictoriaMetrics/VictoriaMetrics/issues/8312
 			ts := ca.q.GetTimestamp()
-			labels := make([]logstorage.Field, 0, len(byFields))
+			labels := make([]logstorage.Field, 0, len(labelFields))
 			for j, c := range columns {
 				if c.Name == "_time" {
 					nsec, ok := logstorage.TryParseTimestampRFC3339Nano(c.Values[i])
@@ -922,7 +920,7 @@ func ProcessStatsQueryRangeRequest(ctx context.Context, w http.ResponseWriter, r
 						continue
 					}
 				}
-				if slices.Contains(byFields, c.Name) {
+				if slices.Contains(labelFields, c.Name) {
 					labels = append(labels, logstorage.Field{
 						Name:  clonedColumnNames[j],
 						Value: strings.Clone(c.Values[i]),
@@ -932,7 +930,7 @@ func ProcessStatsQueryRangeRequest(ctx context.Context, w http.ResponseWriter, r
 
 			var dst []byte
 			for j, c := range columns {
-				if !slices.Contains(byFields, c.Name) {
+				if !slices.Contains(labelFields, c.Name) {
 					name := clonedColumnNames[j]
 					dst = dst[:0]
 					dst = append(dst, name...)
@@ -1017,8 +1015,7 @@ func ProcessStatsQueryRequest(ctx context.Context, w http.ResponseWriter, r *htt
 		return
 	}
 
-	// Obtain `by(...)` fields from the last `| stats` pipe in q.
-	byFields, err := ca.q.GetStatsByFields()
+	labelFields, err := ca.q.GetStatsLabels()
 	if err != nil {
 		httpserver.SendPrometheusError(w, r, err)
 		return
@@ -1036,9 +1033,9 @@ func ProcessStatsQueryRequest(ctx context.Context, w http.ResponseWriter, r *htt
 			clonedColumnNames[i] = strings.Clone(c.Name)
 		}
 		for i := 0; i < rowsCount; i++ {
-			labels := make([]logstorage.Field, 0, len(byFields))
+			labels := make([]logstorage.Field, 0, len(labelFields))
 			for j, c := range columns {
-				if slices.Contains(byFields, c.Name) {
+				if slices.Contains(labelFields, c.Name) {
 					labels = append(labels, logstorage.Field{
 						Name:  clonedColumnNames[j],
 						Value: strings.Clone(c.Values[i]),
@@ -1047,7 +1044,7 @@ func ProcessStatsQueryRequest(ctx context.Context, w http.ResponseWriter, r *htt
 			}
 
 			for j, c := range columns {
-				if !slices.Contains(byFields, c.Name) {
+				if !slices.Contains(labelFields, c.Name) {
 					r := statsRow{
 						Name:      clonedColumnNames[j],
 						Labels:    labels,

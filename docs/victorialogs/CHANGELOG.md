@@ -21,6 +21,7 @@ according to the follosing docs:
 
 ## tip
 
+* FEATURE: [HTTP querying API](https://docs.victoriametrics.com/victorialogs/querying/#http-api): automatically convert the results of [`row_any()`](https://docs.victoriametrics.com/victorialogs/logsql/#row_any-stats), [`row_min()`](https://docs.victoriametrics.com/victorialogs/logsql/#row_min-stats) and [`row_max()`](https://docs.victoriametrics.com/victorialogs/logsql/#row_max-stats) stats functions to labels in [`/select/logsql/stats_query`](https://docs.victoriametrics.com/victorialogs/querying/#querying-log-stats) and [`/select/logsql/stats_query_range`](https://docs.victoriametrics.com/victorialogs/querying/#querying-log-range-stats) functions. This allows obtaining a sample of log message in alerting rules with the following query: `... | stats count() as hits, row_any(_msg) as msg_sample`. See [#81](https://github.com/VictoriaMetrics/VictoriaLogs/issues/81).
 * FEATURE: [vmui](https://docs.victoriametrics.com/victoriametrics/single-server-victoriametrics/#vmui): show VictoriaLogs version in the vmui's footer. See [#116](https://github.com/VictoriaMetrics/VictoriaLogs/issues/116).
 
 ## [v1.39.0](https://github.com/VictoriaMetrics/VictoriaLogs/releases/tag/v1.39.0)
@@ -346,10 +347,10 @@ Released at 2025-06-20
 * FEATURE: [`sum_len` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#sum_len-stats): allow calculating the sum of byte lengths for all the fields with common prefix via `sum_len(prefix*)` syntax.
 * FEATURE: [`count` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#count-stats): allow calculating the number of logs with at least a single non-empty field across fields with common prefix via `count(prefix*)` syntax.
 * FEATURE: [`count_empty` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#count_empty-stats): allow calculating the number of logs with empty fields with common prefix via `count_empty(prefix*)` syntax.
-* FEATURE: [`rate_sum` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#avg-stats): allow calculating the per-second rate over the sum of all the fields with common prefix via `rate_sum(prefix*)` syntax.
-* FEATURE: [`row_any` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#avg-stats): allow returning all the fields with common prefix via `row_any(prefix*)` syntax.
-* FEATURE: [`row_max` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#avg-stats): allow returning all the fields with common prefix via `row_max(max_field, prefix*)` syntax.
-* FEATURE: [`row_min` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#avg-stats): allow returning all the fields with common prefix via `row_min(min_field, prefix*)` syntax.
+* FEATURE: [`rate_sum` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#rate_sum-stats): allow calculating the per-second rate over the sum of all the fields with common prefix via `rate_sum(prefix*)` syntax.
+* FEATURE: [`row_any` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#row_any-stats): allow returning all the fields with common prefix via `row_any(prefix*)` syntax.
+* FEATURE: [`row_max` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#row_max-stats): allow returning all the fields with common prefix via `row_max(max_field, prefix*)` syntax.
+* FEATURE: [`row_min` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#row_min-stats): allow returning all the fields with common prefix via `row_min(min_field, prefix*)` syntax.
 * FEATURE: [`uniq_values` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#uniq_values-stats): allow fetching unique values for all the fields with common prefix via `uniq_values(prefix*)` syntax.
 * FEATURE: [`values` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#values-stats): allow fetching values for all the fields with common prefix via `values(prefix*)` syntax.
 * FEATURE: [`json_values` stats function](https://docs.victoriametrics.com/victorialogs/logsql/#json_values-stats): allow fetching values for all the fields with common prefix via `json_values(prefix*)` syntax.
