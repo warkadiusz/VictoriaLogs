@@ -54,6 +54,30 @@ func TestPushProtobufRequest(t *testing.T) {
 	resultsExpected := `{"_msg":"log-line-message","severity":"Trace"}`
 	f(data, timestampsExpected, resultsExpected)
 
+	// single line with scope attributes
+	data = `[{
+		"scopeLogs": [{
+			"scope": {
+				"name": "foo",
+				"version": "v1.234.5",
+				"attributes": [
+					{"key":"abc","value":{"stringValue":"de"}},
+					{"key":"x","value":{"stringValue":"aaa"}}
+				]
+			},
+			"logRecords": [{
+				"timeUnixNano": 1234,
+				"severityNumber": 1,
+				"body": {
+					"stringValue": "log-line-message"
+				}
+			}]
+		}]
+	}]`
+	timestampsExpected = []int64{1234}
+	resultsExpected = `{"scope.name":"foo","scope.version":"v1.234.5","scope.attributes.abc":"de","scope.attributes.x":"aaa","_msg":"log-line-message","severity":"Trace"}`
+	f(data, timestampsExpected, resultsExpected)
+
 	// severities mapping
 	data = `[{
 		"scopeLogs": [{
@@ -110,6 +134,11 @@ func TestPushProtobufRequest(t *testing.T) {
 			]
 		},
 		"scopeLogs": [{
+			"scope": {
+				"attributes": [
+					{"key":"abc","value":{"stringValue":"de"}}
+				]
+			},
 			"logRecords": [
 				{"timeUnixNano":1234,"severityNumber":1,"body":{"stringValue":"log-line-message"}},
 				{"timeUnixNano":1235,"severityNumber":5,"body":{"stringValue":"log-line-message-msg-2"}}
@@ -133,8 +162,8 @@ func TestPushProtobufRequest(t *testing.T) {
 		]
 	}]`
 	timestampsExpected = []int64{1234, 1235, 2345, 2346, 2347, 2348, 3333, 432}
-	resultsExpected = `{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","_msg":"log-line-message","severity":"Trace"}
-{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","_msg":"log-line-message-msg-2","severity":"Debug"}
+	resultsExpected = `{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","scope.name":"unknown","scope.version":"unknown","scope.attributes.abc":"de","_msg":"log-line-message","severity":"Trace"}
+{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","scope.name":"unknown","scope.version":"unknown","scope.attributes.abc":"de","_msg":"log-line-message-msg-2","severity":"Debug"}
 {"_msg":"log-line-resource-scope-1-0-0","severity":"Info2"}
 {"_msg":"log-line-resource-scope-1-0-1","severity":"Info2"}
 {"_msg":"log-line-resource-scope-1-1-0","severity":"Info4"}
@@ -437,12 +466,36 @@ func (kvl *keyValueList) marshalProtobuf(mm *easyproto.MessageMarshaler) {
 
 // scopeLogs represents the corresponding OTEL protobuf message
 type scopeLogs struct {
-	LogRecords []logRecord `json:"logRecords,omitzero"`
+	Scope      *instrumentationScope `json:"scope,omitzero"`
+	LogRecords []logRecord           `json:"logRecords,omitzero"`
 }
 
 func (sl *scopeLogs) marshalProtobuf(mm *easyproto.MessageMarshaler) {
+	if sl.Scope != nil {
+		sl.Scope.marshalProtobuf(mm.AppendMessage(1))
+	}
 	for _, m := range sl.LogRecords {
 		m.marshalProtobuf(mm.AppendMessage(2))
+	}
+}
+
+// instrumentationScope represents the corresponding OTEL protobuf message.
+// See https://github.com/open-telemetry/opentelemetry-proto/blob/a5f0eac5b802f7ae51dfe41e5116fe5548955e64/opentelemetry/proto/common/v1/common.proto#L76
+type instrumentationScope struct {
+	Name       string      `json:"name,omitzero"`
+	Version    string      `json:"version,omitzero"`
+	Attributes []*keyValue `json:"attributes,omitzero"`
+}
+
+func (s *instrumentationScope) marshalProtobuf(mm *easyproto.MessageMarshaler) {
+	if s.Name != "" {
+		mm.AppendString(1, s.Name)
+	}
+	if s.Version != "" {
+		mm.AppendString(2, s.Version)
+	}
+	for _, m := range s.Attributes {
+		m.marshalProtobuf(mm.AppendMessage(3))
 	}
 }
 

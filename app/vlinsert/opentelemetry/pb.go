@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/VictoriaMetrics/VictoriaMetrics/lib/bytesutil"
+
 	"github.com/VictoriaMetrics/VictoriaLogs/lib/logstorage"
 	"github.com/VictoriaMetrics/easyproto"
 )
@@ -57,12 +59,12 @@ func decodeResourceLogs(src []byte, pushLogs pushLogsHandler) (err error) {
 	defer logstorage.PutFields(fs)
 
 	// Decode resource
-	data, ok, err := easyproto.GetMessageData(src, 1)
+	resourceData, ok, err := easyproto.GetMessageData(src, 1)
 	if err != nil {
 		return fmt.Errorf("cannot find Resource: %w", err)
 	}
 	if ok {
-		if err = decodeResource(data, fs, fb); err != nil {
+		if err = decodeResource(resourceData, fs, fb); err != nil {
 			return fmt.Errorf("cannot decode Resource: %w", err)
 		}
 	}
@@ -120,6 +122,7 @@ func decodeResource(src []byte, fs *logstorage.Fields, fb *fmtBuffer) (err error
 
 func decodeScopeLogs(src []byte, fs *logstorage.Fields, pushLogs pushLogsHandler) (err error) {
 	// message ScopeLogs {
+	//   InstrumentationScope scope = 1;
 	//   repeated LogRecord log_records = 2;
 	// }
 
@@ -127,6 +130,18 @@ func decodeScopeLogs(src []byte, fs *logstorage.Fields, pushLogs pushLogsHandler
 	defer putFmtBuffer(fb)
 
 	streamFieldsLen := len(fs.Fields)
+
+	scopeData, ok, err := easyproto.GetMessageData(src, 1)
+	if err != nil {
+		return fmt.Errorf("cannot read InstrumentationScope: %w", err)
+	}
+	if ok {
+		if err := decodeInstrumentationScope(scopeData, fs, fb); err != nil {
+			return fmt.Errorf("cannot decode InstrumentationScope: %w", err)
+		}
+	}
+
+	commonFieldsLen := len(fs.Fields)
 
 	var fc easyproto.FieldContext
 	for len(src) > 0 {
@@ -142,7 +157,7 @@ func decodeScopeLogs(src []byte, fs *logstorage.Fields, pushLogs pushLogsHandler
 			}
 
 			fb.reset()
-			fs.Fields = fs.Fields[:streamFieldsLen]
+			fs.Fields = fs.Fields[:commonFieldsLen]
 
 			eventName, timestamp, err := decodeLogRecord(data, fs, fb)
 			if err != nil {
@@ -159,11 +174,64 @@ func decodeScopeLogs(src []byte, fs *logstorage.Fields, pushLogs pushLogsHandler
 				f.Value = eventName
 
 				pushLogs(timestamp, fs.Fields, streamFieldsLen+1)
+
+				// Return back common fields to their places before the next iteration
+				fs.Fields = append(fs.Fields[:streamFieldsLen], fs.Fields[streamFieldsLen+1:commonFieldsLen+1]...)
 			} else {
 				pushLogs(timestamp, fs.Fields, streamFieldsLen)
 			}
 		}
 	}
+	return nil
+}
+
+func decodeInstrumentationScope(src []byte, fs *logstorage.Fields, fb *fmtBuffer) error {
+	// See https://github.com/open-telemetry/opentelemetry-proto/blob/a5f0eac5b802f7ae51dfe41e5116fe5548955e64/opentelemetry/proto/common/v1/common.proto#L76
+	//
+	// message InstrumentationScope {
+	//   string name = 1;
+	//   string version = 2;
+	//   repeated KeyValue attributes = 3;
+	// }
+
+	nameData, ok, err := easyproto.GetMessageData(src, 1)
+	if err != nil {
+		return fmt.Errorf("cannot read name: %w", err)
+	}
+	name := "unknown"
+	if ok {
+		name = bytesutil.ToUnsafeString(nameData)
+	}
+	fs.Add("scope.name", name)
+
+	versionData, ok, err := easyproto.GetMessageData(src, 2)
+	if err != nil {
+		return fmt.Errorf("cannot read version: %w", err)
+	}
+	version := "unknown"
+	if ok {
+		version = bytesutil.ToUnsafeString(versionData)
+	}
+	fs.Add("scope.version", version)
+
+	var fc easyproto.FieldContext
+	for len(src) > 0 {
+		src, err = fc.NextField(src)
+		if err != nil {
+			return fmt.Errorf("cannot read the next field: %w", err)
+		}
+		switch fc.FieldNum {
+		case 3:
+			attributesData, ok := fc.MessageData()
+			if !ok {
+				return fmt.Errorf("cannot read Attributes data")
+			}
+			if err := decodeKeyValue(attributesData, fs, fb, "scope.attributes"); err != nil {
+				return fmt.Errorf("cannot decode Attributes: %w", err)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -228,11 +296,11 @@ func decodeLogRecord(src []byte, fs *logstorage.Fields, fb *fmtBuffer) (string, 
 				return "", 0, fmt.Errorf("cannot decode Body: %w", err)
 			}
 		case 6:
-			data, ok := fc.MessageData()
+			attributesData, ok := fc.MessageData()
 			if !ok {
 				return "", 0, fmt.Errorf("cannot read Attributes data")
 			}
-			if err := decodeKeyValue(data, fs, fb, ""); err != nil {
+			if err := decodeKeyValue(attributesData, fs, fb, ""); err != nil {
 				return "", 0, fmt.Errorf("cannot decode Attributes: %w", err)
 			}
 		case 9:
@@ -282,17 +350,17 @@ func decodeKeyValue(src []byte, fs *logstorage.Fields, fb *fmtBuffer, fieldNameP
 	// }
 
 	// Decode key
-	data, ok, err := easyproto.GetMessageData(src, 1)
+	keyData, ok, err := easyproto.GetMessageData(src, 1)
 	if err != nil {
 		return fmt.Errorf("cannot find Key in KeyValue: %w", err)
 	}
 	if !ok {
 		return fmt.Errorf("key is missing in KeyValue")
 	}
-	fieldName := fb.formatSubFieldName(fieldNamePrefix, data)
+	fieldName := fb.formatSubFieldName(fieldNamePrefix, keyData)
 
 	// Decode value
-	data, ok, err = easyproto.GetMessageData(src, 2)
+	valueData, ok, err := easyproto.GetMessageData(src, 2)
 	if err != nil {
 		return fmt.Errorf("cannot find Value in KeyValue: %w", err)
 	}
@@ -301,7 +369,7 @@ func decodeKeyValue(src []byte, fs *logstorage.Fields, fb *fmtBuffer, fieldNameP
 		return nil
 	}
 
-	if err := decodeAnyValue(data, fs, fb, fieldName); err != nil {
+	if err := decodeAnyValue(valueData, fs, fb, fieldName); err != nil {
 		return fmt.Errorf("cannot decode AnyValue: %w", err)
 	}
 
