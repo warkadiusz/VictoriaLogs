@@ -20,7 +20,7 @@ func TestPushProtobufRequest(t *testing.T) {
 		// Throw an error if there are unknown fields in the JSON.
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&rls); err != nil {
-			t.Fatalf("unexpected error: %s", err)
+			t.Fatalf("unexpected error when parsing JSON: %s", err)
 		}
 
 		lr := exportLogsServiceRequest{
@@ -30,7 +30,7 @@ func TestPushProtobufRequest(t *testing.T) {
 		pData := lr.marshalProtobuf(nil)
 		tlp := &insertutil.TestLogMessageProcessor{}
 		if err := pushProtobufRequest(pData, tlp, nil, false); err != nil {
-			t.Fatalf("unexpected error: %s", err)
+			t.Fatalf("unexpected error when parsing protobuf data: %s", err)
 		}
 
 		if err := tlp.Verify(timestampsExpected, resultExpected); err != nil {
@@ -83,12 +83,12 @@ func TestPushProtobufRequest(t *testing.T) {
 		"scopeLogs": [{
 			"logRecords": [
 				{"timeUnixNano":1234,"severityNumber":1,"body":{"stringValue":"log-line-message"}},
-				{"timeUnixNano":1234,"severityNumber":13,"body":{"stringValue":"log-line-message"}},
-				{"timeUnixNano":1234,"severityNumber":24,"body":{"stringValue":"log-line-message"}}
+				{"timeUnixNano":1235,"severityNumber":13,"body":{"stringValue":"log-line-message"}},
+				{"timeUnixNano":1236,"severityNumber":24,"body":{"stringValue":"log-line-message"}}
 			]
 		}]
 	}]`
-	timestampsExpected = []int64{1234, 1234, 1234}
+	timestampsExpected = []int64{1234, 1235, 1236}
 	resultsExpected = `{"_msg":"log-line-message","severity":"Trace"}
 {"_msg":"log-line-message","severity":"Warn"}
 {"_msg":"log-line-message","severity":"Fatal4"}`
@@ -106,19 +106,25 @@ func TestPushProtobufRequest(t *testing.T) {
 			]
 		},
 		"scopeLogs": [{
+			"scope": {
+				"name": "foo",
+				"attributes": [
+					{"key":"x","value":{"stringValue":"aaa"}}
+				]
+			},
 			"logRecords": [
-				{"timeUnixNano":1234,"severityNumber":1,"body":{"stringValue":"log-line-message"}},
+				{"timeUnixNano":1234,"severityNumber":1,"body":{"intValue":833}},
 				{"timeUnixNano":1235,"severityNumber":25,"body":{"stringValue":"log-line-message-msg-2"}},
-				{"timeUnixNano":1236,"severityNumber":-1,"body":{"stringValue":"log-line-message-msg-2"}},
-				{"timeUnixNano":1237,"eventName":"abc","body":{"stringValue":"foobar"}}
+				{"timeUnixNano":1236,"severityNumber":-1,"body":{"stringValue":"log-line-message-msg-3"}},
+				{"timeUnixNano":1237,"eventName":"abc","body":{"intValue":10}}
 			]
 		}]
 	}]`
 	timestampsExpected = []int64{1234, 1235, 1236, 1237}
-	resultsExpected = `{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","_msg":"log-line-message","severity":"Trace"}
-{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","_msg":"log-line-message-msg-2","severity":"Unspecified"}
-{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","_msg":"log-line-message-msg-2","severity":"Unspecified"}
-{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","event_name":"abc","_msg":"foobar","severity":"Unspecified"}`
+	resultsExpected = `{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","scope.name":"foo","scope.version":"unknown","scope.attributes.x":"aaa","_msg":"833","severity":"Trace"}
+{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","scope.name":"foo","scope.version":"unknown","scope.attributes.x":"aaa","_msg":"log-line-message-msg-2","severity":"Unspecified"}
+{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","scope.name":"foo","scope.version":"unknown","scope.attributes.x":"aaa","_msg":"log-line-message-msg-3","severity":"Unspecified"}
+{"logger":"context","instance_id":"10","node_taints.role":"dev","node_taints.cluster_load_percent":"0.55","event_name":"abc","scope.name":"foo","scope.version":"unknown","scope.attributes.x":"aaa","_msg":"10","severity":"Unspecified"}`
 	f(data, timestampsExpected, resultsExpected)
 
 	// multi-scope with resource attributes and multi-line
