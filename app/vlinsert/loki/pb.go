@@ -77,11 +77,11 @@ func decodeStream(src []byte, pushLogs pushLogsHandler) error {
 				return fmt.Errorf("cannot read Entry data")
 			}
 
-			fs.Fields = fs.Fields[:streamFieldsLen]
-
 			if err := decodeEntry(data, fs, pushLogs); err != nil {
 				return fmt.Errorf("cannot unmarshal Entry: %w", err)
 			}
+
+			fs.Fields = fs.Fields[:streamFieldsLen]
 		}
 	}
 	return nil

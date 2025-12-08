@@ -66,7 +66,9 @@ func decodeResourceLogs(src []byte, pushLogs pushLogsHandler) (err error) {
 			return fmt.Errorf("cannot decode Resource: %w", err)
 		}
 	}
+
 	streamFieldsLen := len(fs.Fields)
+	fbLen := len(fb.buf)
 
 	// Decode scope_logs
 	var fc easyproto.FieldContext
@@ -82,12 +84,14 @@ func decodeResourceLogs(src []byte, pushLogs pushLogsHandler) (err error) {
 				return fmt.Errorf("cannot read ScopeLogs data")
 			}
 
-			clear(fs.Fields[streamFieldsLen:])
-			fs.Fields = fs.Fields[:streamFieldsLen]
-
 			if err := decodeScopeLogs(data, fs, fb, pushLogs); err != nil {
 				return fmt.Errorf("cannot decode ScopeLogs: %w", err)
 			}
+
+			clear(fs.Fields[streamFieldsLen:])
+			fs.Fields = fs.Fields[:streamFieldsLen]
+
+			fb.buf = fb.buf[:fbLen]
 		}
 	}
 
@@ -154,11 +158,6 @@ func decodeScopeLogs(src []byte, fs *logstorage.Fields, fb *fmtBuffer, pushLogs 
 				return fmt.Errorf("cannot read LogRecord data")
 			}
 
-			clear(fs.Fields[commonFieldsLen:])
-			fs.Fields = fs.Fields[:commonFieldsLen]
-
-			fb.buf = fb.buf[:fbLen]
-
 			eventName, timestamp, err := decodeLogRecord(data, fs, fb)
 			if err != nil {
 				return fmt.Errorf("cannot decode LogRecord: %w", err)
@@ -180,6 +179,11 @@ func decodeScopeLogs(src []byte, fs *logstorage.Fields, fb *fmtBuffer, pushLogs 
 			} else {
 				pushLogs(timestamp, fs.Fields, streamFieldsLen)
 			}
+
+			clear(fs.Fields[commonFieldsLen:])
+			fs.Fields = fs.Fields[:commonFieldsLen]
+
+			fb.buf = fb.buf[:fbLen]
 		}
 	}
 	return nil
