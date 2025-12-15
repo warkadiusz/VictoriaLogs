@@ -21,6 +21,8 @@ according to the following docs:
 
 ## tip
 
+* FEATURE: [LogsQL](https://docs.victoriametrics.com/victorialogs/logsql/): add [`coalesce` pipe](https://docs.victoriametrics.com/victorialogs/logsql/#coalesce-pipe) for returning the first non-empty value from the specified list of fields, or a default value if all are empty. See [#690](https://github.com/VictoriaMetrics/VictoriaLogs/issues/690)
+
 ## [v1.41.0](https://github.com/VictoriaMetrics/VictoriaLogs/releases/tag/v1.41.0)
 
 Released at 2025-12-13
