@@ -21,6 +21,7 @@ according to the following docs:
 
 ## tip
 
+* BUGFIX: [data ingestion](https://docs.victoriametrics.com/victorialogs/data-ingestion/): accept timestamps with timezone offsets in `±HHMM` format (e.g. `2025-12-15T02:12:34.977+0100`) in addition to `±HH:MM` (RFC3339) format. See [#902](https://github.com/VictoriaMetrics/VictoriaLogs/issues/902).
 * FEATURE: [LogsQL](https://docs.victoriametrics.com/victorialogs/logsql/): add [`coalesce` pipe](https://docs.victoriametrics.com/victorialogs/logsql/#coalesce-pipe) for returning the first non-empty value from the specified list of fields, or a default value if all are empty. See [#690](https://github.com/VictoriaMetrics/VictoriaLogs/issues/690)
 
 ## [v1.41.0](https://github.com/VictoriaMetrics/VictoriaLogs/releases/tag/v1.41.0)
