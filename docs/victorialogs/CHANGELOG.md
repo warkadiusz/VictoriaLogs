@@ -21,6 +21,8 @@ according to the following docs:
 
 ## tip
 
+* FEATURE: [HTTP querying API](https://docs.victoriametrics.com/victorialogs/querying/#http-api): convert [`histogram` stats](https://docs.victoriametrics.com/victorialogs/logsql/#histogram-stats) results to [VictoriaMetrics histogram buckets](https://valyala.medium.com/improving-histogram-usability-for-prometheus-and-grafana-bc7e5df0e350) in responses from [`/select/logsql/stats_query`](https://docs.victoriametrics.com/victorialogs/querying/#querying-log-stats) and [`/select/logsql/stats_query_range`](https://docs.victoriametrics.com/victorialogs/querying/#querying-log-range-stats) functions. This allows using `histogram()` stats in [recording rules for VictoriaLogs](https://docs.victoriametrics.com/victorialogs/vmalert/#recording-rules). See [#10184 at VictoriaMetrics](https://github.com/VictoriaMetrics/VictoriaMetrics/issues/10184), [#86](https://github.com/VictoriaMetrics/VictoriaLogs/issues/86) and [#62 at VictoriaLogs plugin for Grafana](https://github.com/VictoriaMetrics/victorialogs-datasource/issues/62).
+
 ## [v1.41.1](https://github.com/VictoriaMetrics/VictoriaLogs/releases/tag/v1.41.1)
 
 Released at 2025-12-17
