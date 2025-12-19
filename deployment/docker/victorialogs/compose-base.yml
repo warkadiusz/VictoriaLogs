@@ -56,8 +56,8 @@ services:
       - vlagent:/vlagent
     command:
       - '--remoteWrite.tmpDataPath=/vlagent'
-      - '--remoteWrite.url=http://victorialogs-1:9428/internal/insert'
-      - '--remoteWrite.url=http://victorialogs-2:9428/internal/insert'
+      - '--remoteWrite.url=http://victorialogs-1:9428/insert/native'
+      - '--remoteWrite.url=http://victorialogs-2:9428/insert/native'
       - '--syslog.listenAddr.tcp=0.0.0.0:8094'
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:9429/health"]

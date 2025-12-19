@@ -83,8 +83,9 @@ func parseData(irp insertutil.InsertRowProcessor, data []byte, tenantID logstora
 		i++
 
 		if !r.TenantID.Equal(&zeroTenantID) && !r.TenantID.Equal(&tenantID) {
-			logger.Warnf("incorrect use of /insert/native: the tenant ID %q from the request body will be overridden with %q from the AccountID and ProjectID HTTP headers; "+
-				"See https://docs.victoriametrics.com/victorialogs/vlagent/#multitenancy", r.TenantID, tenantID)
+			invalidTenantIDLogger.Warnf("use %q from AccountID and ProjectID request headers as tenantID for the log entry instead of %q; "+
+				"see https://docs.victoriametrics.com/victorialogs/vlagent/#multitenancy ; "+
+				"log entry: %s", tenantID, r.TenantID, logstorage.MarshalFieldsToJSON(nil, r.Fields))
 		}
 
 		r.TenantID = tenantID
@@ -94,6 +95,8 @@ func parseData(irp insertutil.InsertRowProcessor, data []byte, tenantID logstora
 
 	return nil
 }
+
+var invalidTenantIDLogger = logger.WithThrottler("invalid_tenant_id", 5*time.Second)
 
 var (
 	requestsTotal = metrics.NewCounter(`vl_http_requests_total{path="/insert/native"}`)

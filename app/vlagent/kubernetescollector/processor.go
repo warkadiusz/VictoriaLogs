@@ -19,7 +19,7 @@ import (
 
 var (
 	tenantID = flag.String("kubernetesCollector.tenantID", "0:0",
-		"Default tenant ID to use for logs collected from Kubernetes pods in format: <accountID>:<projectID>")
+		"Default tenant ID to use for logs collected from Kubernetes pods in format: <accountID>:<projectID>. See https://docs.victoriametrics.com/victorialogs/vlagent/#multitenancy")
 	ignoreFields     = flagutil.NewArrayString("kubernetesCollector.ignoreFields", "Fields to ignore across logs ingested from Kubernetes")
 	decolorizeFields = flagutil.NewArrayString("kubernetesCollector.decolorizeFields", "Fields to remove ANSI color codes across logs ingested from Kubernetes")
 	msgField         = flagutil.NewArrayString("kubernetesCollector.msgField", "Fields that may contain the _msg field. "+
