@@ -183,22 +183,22 @@ func (kc *kubernetesCollector) handleUpdateEvent(data json.RawMessage) {
 var streamFieldNames = []string{"kubernetes.container_name", "kubernetes.pod_name", "kubernetes.pod_namespace"}
 
 func getCommonFields(p pod, cs containerStatus) []logstorage.Field {
-	var dst []logstorage.Field
+	var fs logstorage.Fields
 
 	// Fields should match vector.dev kubernetes_source for easy migration.
-	dst = append(dst, logstorage.Field{Name: "kubernetes.container_name", Value: cs.Name})
-	dst = append(dst, logstorage.Field{Name: "kubernetes.pod_name", Value: p.Metadata.Name})
-	dst = append(dst, logstorage.Field{Name: "kubernetes.pod_namespace", Value: p.Metadata.Namespace})
-	dst = append(dst, logstorage.Field{Name: "kubernetes.container_id", Value: cs.ContainerID})
-	dst = append(dst, logstorage.Field{Name: "kubernetes.pod_ip", Value: p.Status.PodIP})
-	dst = append(dst, logstorage.Field{Name: "kubernetes.pod_node_name", Value: p.Spec.NodeName})
+	fs.Add("kubernetes.container_name", cs.Name)
+	fs.Add("kubernetes.pod_name", p.Metadata.Name)
+	fs.Add("kubernetes.pod_namespace", p.Metadata.Namespace)
+	fs.Add("kubernetes.container_id", cs.ContainerID)
+	fs.Add("kubernetes.pod_ip", p.Status.PodIP)
+	fs.Add("kubernetes.pod_node_name", p.Spec.NodeName)
 
 	for k, v := range p.Metadata.Labels {
 		fieldName := "kubernetes.pod_labels." + k
-		dst = append(dst, logstorage.Field{Name: fieldName, Value: v})
+		fs.Add(fieldName, v)
 	}
 
-	return dst
+	return fs.Fields
 }
 
 func (kc *kubernetesCollector) getLogFilePath(p pod, pc podContainer, cs containerStatus) string {
