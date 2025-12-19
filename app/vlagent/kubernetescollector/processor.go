@@ -28,7 +28,7 @@ var (
 		"Default: time,timestamp,ts. If none of the specified fields is found in the log line, then the write time will be used. "+
 		"See https://docs.victoriametrics.com/victorialogs/keyconcepts/#time-field")
 	extraFields = flag.String("kubernetesCollector.extraFields", "", "Extra fields to add to each log line collected from Kubernetes pods in JSON format. "+
-		`For example: -kubernetes.extraFields='{"cluster":"cluster-1","env":"production"}'`)
+		`For example: -kubernetesCollector.extraFields='{"cluster":"cluster-1","env":"production"}'`)
 )
 
 type logFileProcessor struct {
@@ -367,7 +367,7 @@ func getTenantID() logstorage.TenantID {
 func initTenantID() {
 	v, err := logstorage.ParseTenantID(*tenantID)
 	if err != nil {
-		logger.Fatalf("cannot parse -kubernetes.tenantID=%q: %s", *tenantID, err)
+		logger.Fatalf("cannot parse -kubernetesCollector.tenantID=%q: %s", *tenantID, err)
 	}
 	parsedTenantID = v
 }
@@ -387,7 +387,7 @@ func initExtraFields() {
 
 	p := logstorage.GetJSONParser()
 	if err := p.ParseLogMessage([]byte(*extraFields)); err != nil {
-		logger.Fatalf("cannot parse -kubernetes.extraFields=%q: %s", *extraFields, err)
+		logger.Fatalf("cannot parse -kubernetesCollector.extraFields=%q: %s", *extraFields, err)
 	}
 
 	fields := p.Fields

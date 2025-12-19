@@ -423,7 +423,7 @@ See the docs at https://docs.victoriametrics.com/victorialogs/vlagent/ .
         Supports an array of values separated by comma or specified via multiple flags.
         Value can contain comma inside single-quoted or double-quoted string, {}, [] and () braces.
   -kubernetesCollector.extraFields string
-        Extra fields to add to each log line collected from Kubernetes pods in JSON format. For example: -kubernetes.extraFields='{"cluster":"cluster-1","env":"production"}'
+        Extra fields to add to each log line collected from Kubernetes pods in JSON format. For example: -kubernetesCollector.extraFields='{"cluster":"cluster-1","env":"production"}'
   -kubernetesCollector.ignoreFields array
         Fields to ignore across logs ingested from Kubernetes
         Supports an array of values separated by comma or specified via multiple flags.
