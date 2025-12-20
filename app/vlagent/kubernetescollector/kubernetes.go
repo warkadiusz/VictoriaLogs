@@ -6,26 +6,34 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/VictoriaMetrics/VictoriaMetrics/lib/logger"
+
+	"github.com/VictoriaMetrics/VictoriaLogs/lib/logstorage"
 )
 
 var (
 	enabled         = flag.Bool("kubernetesCollector", false, "Whether to enable collecting logs from Kubernetes")
-	checkpointsPath = flag.String("kubernetesCollector.checkpointsPath", "vlagent-kubernetes-checkpoints.json",
+	checkpointsPath = flag.String("kubernetesCollector.checkpointsPath", "",
 		"Path to file with checkpoints for Kubernetes logs. "+
 			"Checkpoints are used to persist the read offsets for Kubernetes container logs. "+
-			"When vlagent is restarted, it resumes reading logs from the stored offsets to avoid log duplication")
+			"When vlagent is restarted, it resumes reading logs from the stored offsets to avoid log duplication; "+
+			"if this flag isn't set, then checkpoints are saved into vlagent-kubernetes-checkpoints.json under -tmpDataPath directory")
 	logsPath = flag.String("kubernetesCollector.logsPath", "/var/log/containers",
 		"Path to the directory with Kubernetes container logs (usually /var/log/containers). "+
 			"This should point to the kubelet-managed directory containing symlinks to pod logs. "+
 			"vlagent must have read access to this directory and to the target log files, typically located under /var/log/pods and /var/lib on the host")
+	excludeFilter = flag.String("kubernetesCollector.excludeFilter", "", "Optional LogsQL filter for excluding container logs. "+
+		"The filter is applied to container metadata fields (e.g., kubernetes.namespace_name, kubernetes.container_name) before reading the log files. "+
+		"This significantly reduces CPU and I/O usage by skipping logs from unwanted containers. "+
+		"See https://docs.victoriametrics.com/victorialogs/vlagent/#filtering-kubernetes-logs")
 )
 
 var collector *kubernetesCollector
 
-func Init() {
+func Init(tmpDataPath string) {
 	if !*enabled {
 		return
 	}
@@ -45,7 +53,20 @@ func Init() {
 		logger.Fatalf("cannot get current node name: %s", err)
 	}
 
-	kc, err := startKubernetesCollector(c, currentNodeName, *logsPath, *checkpointsPath)
+	path := *checkpointsPath
+	if len(path) == 0 {
+		path = filepath.Join(tmpDataPath, "vlagent-kubernetes-checkpoints.json")
+	}
+
+	var excludeF *logstorage.Filter
+	if *excludeFilter != "" {
+		excludeF, err = logstorage.ParseFilter(*excludeFilter)
+		if err != nil {
+			logger.Fatalf("cannot parse LogsQL -kubernetesContainer.excludeFilter=%q: %s", *excludeFilter, err)
+		}
+	}
+
+	kc, err := startKubernetesCollector(c, currentNodeName, *logsPath, path, excludeF)
 	if err != nil {
 		logger.Fatalf("cannot start kubernetes collector: %s", err)
 	}
